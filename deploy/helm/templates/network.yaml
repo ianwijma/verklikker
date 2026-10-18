@@ -1,0 +1,11 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-workers
+spec:
+  podSelector: {matchLabels: {app: "{{ .Release.Name }}-worker"}}
+  policyTypes: [Ingress]
+  ingress: []
+# Workers initiate authenticated API/S3 connections and public Internet traffic.
+# The per-VM gateway independently denies private, metadata, local-interface and
+# controller destinations. Configure the site's egress firewall for defense in depth.

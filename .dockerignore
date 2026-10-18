@@ -1,0 +1,9 @@
+.git
+node_modules
+dist
+artifacts
+.env
+.cache
+native/gateway/upstream
+runtime/verklikker-gateway
+__pycache__

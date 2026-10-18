@@ -1,0 +1,23 @@
+version: 1
+label: HTTP mock smoke test
+image: verklikker/npm:local
+argv:
+  [
+    node,
+    -e,
+    "fetch('https://probe.example/check').then(r=>r.text()).then(console.log)",
+  ]
+network:
+  mode: allowlist
+  tls: intercept
+  rules:
+    - id: local-response
+      host: probe.example
+      port: 443
+      action: mock
+      response:
+        {
+          status: 200,
+          headers: { content-type: text/plain },
+          body: mocked-response,
+        }

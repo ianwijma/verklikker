@@ -1,0 +1,9 @@
+version: 1
+label: Benign file and process smoke test
+image: verklikker/npm:local
+argv:
+  - node
+  - -e
+  - "const fs=require('node:fs');fs.writeFileSync('/work/probe.txt','evidence-probe');console.log(fs.readFileSync('/work/probe.txt','utf8'));require('node:child_process').execFileSync('/bin/sh',['-c','printf child-process']);"
+limits: { timeoutSeconds: 30, observeSeconds: 1 }
+network: { mode: allowlist }

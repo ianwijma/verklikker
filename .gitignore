@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.cache/
+artifacts/
+runtime/
+coverage/
+*.log
+native/gateway/upstream/
+__pycache__/
+*.pyc
+capacity-result.json

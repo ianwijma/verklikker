@@ -1,0 +1,16 @@
+version: 1
+label: is-number install
+image: verklikker/npm:local
+argv:
+  [
+    npm,
+    install,
+    --foreground-scripts,
+    --no-audit,
+    --no-fund,
+    --,
+    is-number@7.0.0,
+  ]
+network:
+  mode: public
+  tls: passthrough

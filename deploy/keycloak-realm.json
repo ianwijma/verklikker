@@ -1,0 +1,15 @@
+{
+  "realm": "verklikker", "enabled": true, "registrationAllowed": false,
+  "resetPasswordAllowed": false, "loginWithEmailAllowed": true, "duplicateEmailsAllowed": false,
+  "accessTokenLifespan": 3600,
+  "clients": [{
+    "clientId": "verklikker", "name": "Verklikker", "enabled": true,
+    "publicClient": true, "standardFlowEnabled": true, "directAccessGrantsEnabled": false,
+    "redirectUris": ["http://localhost:3000/auth/callback"], "webOrigins": ["http://localhost:3000"],
+    "attributes": {"pkce.code.challenge.method":"S256", "oauth2.device.authorization.grant.enabled":"true"},
+    "protocolMappers": [{
+      "name":"verklikker-audience", "protocol":"openid-connect", "protocolMapper":"oidc-audience-mapper",
+      "config":{"included.client.audience":"verklikker","access.token.claim":"true","id.token.claim":"false"}
+    }]
+  }]
+}

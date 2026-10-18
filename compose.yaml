@@ -1,0 +1,65 @@
+name: verklikker
+services:
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: verklikker
+      POSTGRES_USER: verklikker
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run node scripts/configure.mjs}
+    ports: ["127.0.0.1:54321:5432"]
+    volumes: ["postgres:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U verklikker"]
+      interval: 3s
+      retries: 30
+  identity:
+    image: quay.io/keycloak/keycloak:26.7.3
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Run node scripts/configure.mjs}
+      KC_HOSTNAME: http://localhost:8080
+    ports: ["127.0.0.1:8080:8080"]
+    volumes:
+      - identity:/opt/keycloak/data
+      - ./deploy/keycloak-realm.json:/opt/keycloak/data/import/verklikker.json:ro
+  storage:
+    image: chrislusf/seaweedfs:4.48
+    command: ["mini", "-dir=/data"]
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?Run node scripts/configure.mjs}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?Run node scripts/configure.mjs}
+      S3_BUCKET: evidence
+    ports: ["127.0.0.1:8333:8333"]
+    volumes: ["evidence:/data"]
+  migrate:
+    image: verklikker/service:0.1.0
+    build: .
+    command: ["node", "dist/apps/api/migrate.js"]
+    environment:
+      DATABASE_URL: postgres://verklikker:${POSTGRES_PASSWORD}@postgres:5432/verklikker
+    depends_on:
+      postgres: { condition: service_healthy }
+  api:
+    image: verklikker/service:0.1.0
+    build: .
+    restart: on-failure
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://verklikker:${POSTGRES_PASSWORD}@postgres:5432/verklikker
+      OIDC_INTERNAL_ISSUER: http://identity:8080/realms/verklikker
+      S3_ENDPOINT: http://storage:8333
+      HOST: 0.0.0.0
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      storage: { condition: service_started }
+      identity: { condition: service_started }
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    read_only: true
+    tmpfs: ["/tmp:size=2147483648,mode=1777"]
+volumes:
+  postgres: {}
+  identity: {}
+  evidence: {}

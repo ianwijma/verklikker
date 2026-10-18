@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-api
+spec:
+  replicas: {{ .Values.apiReplicas }}
+  selector: {matchLabels: {app: "{{ .Release.Name }}-api"}}
+  template:
+    metadata: {labels: {app: "{{ .Release.Name }}-api"}}
+    spec:
+      automountServiceAccountToken: false
+      securityContext: {runAsUser: 1000, runAsGroup: 1000, fsGroup: 1000, runAsNonRoot: true}
+      initContainers:
+        - name: migrate
+          image: {{ .Values.serviceImage | quote }}
+          command: [node, dist/apps/api/migrate.js]
+          envFrom: [{secretRef: {name: "{{ .Values.existingSecret }}"}}]
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: api
+          image: {{ .Values.serviceImage | quote }}
+          ports: [{containerPort: 3000}]
+          envFrom: [{secretRef: {name: "{{ .Values.existingSecret }}"}}]
+          env: [{name: HOST, value: "0.0.0.0"}]
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}, seccompProfile: {type: RuntimeDefault}}
+          resources:
+            requests: {cpu: "1", memory: 1Gi}
+            limits: {cpu: "2", memory: 2Gi}
+          readinessProbe: {httpGet: {path: /health, port: 3000}, initialDelaySeconds: 5}
+          volumeMounts: [{name: tmp, mountPath: /tmp}]
+      volumes: [{name: tmp, emptyDir: {sizeLimit: 3Gi}}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-api
+spec:
+  selector: {app: "{{ .Release.Name }}-api"}
+  ports: [{port: 3000, targetPort: 3000}]
